@@ -4,9 +4,9 @@ version = '1.0.0'
 authors = []
 
 [addresses]
-nft_launchpad = "0x4477072c2c9867029b336fd96e27c8f33fcf56088dc3245fce4905e4646e2286"
+nft_launchpad = "0x78bbaf217f3bd5891fddca17af38951450cde1e9c73d2688e479422f12c86b41"
 # @nft_launchpad + seed
-collection_creator = "0xec7230d4acbfd48d01b920d5ab5e2644c4be6d1af8abea8dd080de414cbb8ff4"
+collection_creator = "0x20236e071ba6882f9168f2bd4094fcab1ce04744bd941ad5adc11caa946fe179"
 aptos_token_objects = "0x4"
 
 [dev-addresses]

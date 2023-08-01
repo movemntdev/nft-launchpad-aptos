@@ -325,6 +325,11 @@ module nft_launchpad::main {
 
     #[test(aptos_framework = @0x1, alice = @0xa11ce, bob = @0xb0b, nft_launchpad=@nft_launchpad, trigger = @0xd1e1)]
     fun e2e_test(aptos_framework: signer, nft_launchpad: signer, alice: signer, bob: signer, trigger: signer) acquires State {
+      
+        // enable auid feature
+        use std::features;
+        let feature = features::get_auids();
+        features::change_feature_flags(&aptos_framework, vector[feature], vector[]);
 
         // setup env and create accounts
         setup(&aptos_framework, &alice, vector[@0xb0b, @0xd1e1, @nft_launchpad]);
@@ -349,19 +354,13 @@ module nft_launchpad::main {
         );
 
         // bob tries minting
-        let creation_number = account::get_guid_next_creation_num(@collection_creator);
+  
         mint_token(
           &bob,
           nft_collection_name,
           string::utf8(b"azuki collection # 1"),
           string::utf8(b"ipfs://azuki-collection-uri/1"),
         );
-
-        // check token name
-        let token_obj = object::address_to_object<aptos_token::AptosToken>(
-            object::create_guid_object_address(@collection_creator, creation_number)
-        );
-        aptos_std::debug::print<String>(&aptos_token_objects::token::name(token_obj));
 
         // check state info
         let state_info = borrow_global<State>(@nft_launchpad);
