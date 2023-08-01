@@ -103,6 +103,12 @@ module nft_launchpad::main {
         state.trigger_address = trigger_address;
     }
 
+    public entry fun set_tax_rate(admin: &signer, new_tax_rate: u64) acquires State {
+        let state = borrow_global_mut<State>(@nft_launchpad);
+        assert!(state.admin_address == signer::address_of(admin), ERROR_SIGNER_NOT_ADMIN);
+        state.platform_tax_rate = new_tax_rate;
+    }
+
     public entry fun create_collection(
         trigger: &signer,
         max_supply: u64,
