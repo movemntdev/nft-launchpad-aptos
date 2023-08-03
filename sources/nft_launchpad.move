@@ -44,6 +44,12 @@ module nft_launchpad::main {
         nft_name: String,
         nft_uri: String
     }
+
+    struct CreateCollectionEvent has store, drop {
+        collection_name: String,
+        max_supply: u64,
+        uri: String
+    }
     //
     // Data structures
     //
@@ -61,15 +67,21 @@ module nft_launchpad::main {
         platform_tax_rate: u64, // based on 1000
         tax_coins: Coin<AptosCoin>,
         mint_events: EventHandle<MintEvent>,
+        create_collection_events: EventHandle<CreateCollectionEvent>,
         collection_signer_cap: SignerCapability
     }
 
     //
     // Assert functions
     //
+
     inline fun assert_state_initialized() {
         // Assert that State resource exists at the admin address
         assert!(exists<State>(@nft_launchpad), ERROR_STATE_NOT_INITIALIZED);
+    }
+
+    inline fun assert_signer_is_admin(state: &State, signer_address: address) {
+        assert!(state.admin_address == signer_address, ERROR_SIGNER_NOT_ADMIN);
     }
 
     //
@@ -92,20 +104,21 @@ module nft_launchpad::main {
             tax_coins: coin::zero<AptosCoin>(),
             collections: simple_map::create<address, CollectionInfo>(),
             mint_events: account::new_event_handle<MintEvent>(sender),
+            create_collection_events: account::new_event_handle<CreateCollectionEvent>(sender),
             collection_signer_cap: signer_cap
         });
     }
 
     public entry fun set_addresses(admin: &signer, new_admin_address: address, trigger_address: address) acquires State {
         let state = borrow_global_mut<State>(@nft_launchpad);
-        assert!(state.admin_address == signer::address_of(admin), ERROR_SIGNER_NOT_ADMIN);
+        assert_signer_is_admin(state, signer::address_of(admin));
         state.admin_address = new_admin_address;
         state.trigger_address = trigger_address;
     }
 
     public entry fun set_tax_rate(admin: &signer, new_tax_rate: u64) acquires State {
         let state = borrow_global_mut<State>(@nft_launchpad);
-        assert!(state.admin_address == signer::address_of(admin), ERROR_SIGNER_NOT_ADMIN);
+        assert_signer_is_admin(state, signer::address_of(admin));
         state.platform_tax_rate = new_tax_rate;
     }
 
@@ -149,6 +162,16 @@ module nft_launchpad::main {
           json_uri,
           earned_coins: coin::zero<AptosCoin>(),
         });
+
+        // emit event
+        event::emit_event<CreateCollectionEvent>(
+            &mut state.create_collection_events,
+            CreateCollectionEvent {
+                collection_name: name,
+                max_supply,
+                uri
+            }
+        );
     }
 
     // mint nft
@@ -218,7 +241,8 @@ module nft_launchpad::main {
     // withdraw fees ( admin function )
     public entry fun withdraw_tax(account: &signer) acquires State {
         let state = borrow_global_mut<State>(@nft_launchpad);
-        assert!(state.admin_address == signer::address_of(account), ERROR_SIGNER_NOT_ADMIN);
+
+        assert_signer_is_admin(state, signer::address_of(account));
 
         // withdraw fees
         let amt = coin::value(&state.tax_coins);
@@ -229,8 +253,9 @@ module nft_launchpad::main {
     // withdraw earned coins ( admin function )
     public entry fun withdraw_earning(account: &signer, collection_name: String, receiver: address) acquires State {
         let state = borrow_global_mut<State>(@nft_launchpad);
-        assert!(state.admin_address == signer::address_of(account), ERROR_SIGNER_NOT_ADMIN);
         
+        assert_signer_is_admin(state, signer::address_of(account));
+
         // get collection address
         let collection_address = collection::create_collection_address(&@collection_creator, &collection_name);
 
